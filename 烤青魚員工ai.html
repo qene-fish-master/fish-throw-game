@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>烤青魚 AI 員工助手</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  font-family: Arial,"Microsoft JhengHei",sans-serif;
+  background:#f4f6f8;
+  margin:0;
+  padding:0;
+}
+.container{
+  max-width:700px;
+  margin:40px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.1);
+}
+h1{
+  text-align:center;
+  color:#0d47a1;
+}
+.chat-box{
+  border:1px solid #ccc;
+  height:400px;
+  overflow-y:auto;
+  padding:10px;
+  border-radius:8px;
+  background:#f9f9f9;
+}
+.message{
+  margin:8px 0;
+}
+.message.user{
+  text-align:right;
+  color:#0d47a1;
+}
+.message.ai{
+  text-align:left;
+  color:#1976d2;
+}
+.input-box{
+  display:flex;
+  margin-top:10px;
+}
+input[type="text"]{
+  flex:1;
+  padding:10px;
+  font-size:16px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{
+  padding:10px 20px;
+  margin-left:8px;
+  font-size:16px;
+  background:#1976d2;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+button:hover{
+  background:#0d47a1;
+}
+.footer{
+  text-align:center;
+  margin-top:15px;
+  font-size:13px;
+  color:#666;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>烤青魚 AI 員工助手</h1>
+  <div class="chat-box" id="chatBox">
+    <div class="message ai">您好，我是烤青魚 AI 員工助手！請問有什麼問題嗎？</div>
+  </div>
+
+  <div class="input-box">
+    <input type="text" id="userInput" placeholder="輸入你的問題，例如：如何烤青魚？">
+    <button onclick="sendMessage()">送出</button>
+  </div>
+
+  <div class="footer">烤青魚專賣店股份有限公司 - 員工專用</div>
+</div>
+
+<script>
+// 模擬 AI 回答
+function getAiReply(userMsg){
+  const msg = userMsg.toLowerCase();
+  // 簡單關鍵字回答
+  if(msg.includes("烤青魚") && msg.includes("流程")){
+    return "烤青魚流程：清理魚身 → 醃料醃製 → 烤架加熱 → 放入烤青魚 → 翻面至金黃 → 裝盤出餐。";
+  }else if(msg.includes("保存") || msg.includes("保存方式")){
+    return "保存方式：若未烤，冷藏可存放2天，冷凍可保存1個月；已烤，請冷藏24小時內食用。";
+  }else if(msg.includes("溫度")){
+    return "建議烤魚溫度約180~200°C，每面烤8~10分鐘，視魚大小調整。";
+  }else if(msg.includes("清潔") || msg.includes("清掃")){
+    return "烤架使用後請立即清潔，油汙及魚刺需清理乾淨，保持作業區整潔。";
+  }else if(msg.includes("醃料")){
+    return "常用醃料：鹽、胡椒、檸檬汁、少量醬油，可依店內標準配方調整。";
+  }else{
+    return "抱歉，我暫時無法回答該問題，請向主管或內部手冊查詢。";
+  }
+}
+
+function sendMessage(){
+  const userInput = document.getElementById("userInput");
+  const chatBox = document.getElementById("chatBox");
+  const msg = userInput.value.trim();
+  if(msg === "") return;
+
+  // 顯示使用者訊息
+  const userMsgDiv = document.createElement("div");
+  userMsgDiv.className = "message user";
+  userMsgDiv.textContent = msg;
+  chatBox.appendChild(userMsgDiv);
+
+  // AI 回答
+  const aiReply = getAiReply(msg);
+  const aiMsgDiv = document.createElement("div");
+  aiMsgDiv.className = "message ai";
+  aiMsgDiv.textContent = aiReply;
+  chatBox.appendChild(aiMsgDiv);
+
+  // 自動滾動到底
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  userInput.value = "";
+}
+</script>
+
+</body>
+</html>
