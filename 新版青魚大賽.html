@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>青魚丟擲大賽 v9.1</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#bfe9ff;
+text-align:center;
+overflow:hidden;
+}
+
+h2{
+margin:10px;
+}
+
+.menuBtn{
+display:block;
+width:220px;
+margin:10px auto;
+padding:14px;
+font-size:20px;
+border-radius:12px;
+border:none;
+background:#ffcc33;
+}
+
+#game{
+display:none;
+width:100vw;
+height:65vh;
+background:#aee8ff;
+position:relative;
+overflow:hidden;
+border-bottom:4px solid #333;
+}
+
+#fish{
+width:60px;
+position:absolute;
+bottom:12%;
+left:0;
+}
+
+#touch{
+position:absolute;
+bottom:0;
+width:100%;
+height:45%;
+background:rgba(0,0,0,0.05);
+}
+
+#predict{
+position:absolute;
+bottom:15%;
+background:white;
+padding:4px 8px;
+border-radius:6px;
+display:none;
+}
+
+#scale{
+position:absolute;
+bottom:12%;
+width:100%;
+display:flex;
+justify-content:space-between;
+padding:0 20px;
+font-weight:bold;
+}
+
+#height{
+position:absolute;
+left:5px;
+bottom:12%;
+height:88%;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+font-size:12px;
+}
+
+canvas{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+}
+
+#playerDisplay{
+font-size:20px;
+font-weight:bold;
+margin:5px;
+}
+
+#scoreBoard{
+font-size:16px;
+margin:5px;
+}
+
+#winner{
+display:none;
+font-size:26px;
+color:red;
+animation:win 1s infinite alternate;
+}
+
+@keyframes win{
+from{transform:scale(1);}
+to{transform:scale(1.3);}
+}
+
+#resultPanel{
+display:none;
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+#settings{
+display:none;
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:20px;
+border-radius:12px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>青魚丟擲大賽 v9.1</h2>
+
+<div id="menu">
+
+<input id="p1" placeholder="玩家1名字">
+<input id="p2" placeholder="玩家2名字">
+<input id="p3" placeholder="玩家3名字">
+
+<button class="menuBtn" onclick="startGame(1)">開始遊戲</button>
+<button class="menuBtn" onclick="startGame(3)">三人模式</button>
+<button class="menuBtn" onclick="showScores()">排行榜</button>
+<button class="menuBtn" onclick="openSettings()">設定</button>
+
+<br>
+
+選魚
+<select id="fishType">
+<option value="1">青魚 重量1</option>
+<option value="0.7">金魚 重量0.7</option>
+<option value="2">鯊魚 重量2</option>
+</select>
+
+</div>
+
+<div id="wind"></div>
+<div id="playerDisplay"></div>
+<div id="scoreBoard"></div>
+
+<div id="game">
+
+<div id="height">
+<span>60h</span>
+<span>50h</span>
+<span>40h</span>
+<span>30h</span>
+<span>20h</span>
+<span>10h</span>
+<span>0h</span>
+</div>
+
+<div id="scale">
+<span>0m</span>
+<span>50m</span>
+<span>100m</span>
+<span>150m</span>
+<span>200m</span>
+</div>
+
+<div id="predict"></div>
+
+<canvas id="line"></canvas>
+
+<img id="fish"
+src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Fish_icon.svg">
+
+<div id="touch"></div>
+
+</div>
+
+<div id="resultPanel">
+
+<h3 id="resultText"></h3>
+<div id="winner"></div>
+
+<button onclick="restartGame()">再玩一次</button>
+<button onclick="location.reload()">回主畫面</button>
+
+</div>
+
+<div id="settings">
+
+<h3>設定</h3>
+
+<label>
+<input type="checkbox" id="musicToggle" checked>
+音樂
+</label>
+
+<br>
+
+<label>
+<input type="checkbox" id="offlineToggle">
+無網模式
+</label>
+
+<br>
+
+<label>
+<input type="checkbox" id="batteryToggle">
+低耗電模式
+</label>
+
+<br><br>
+
+<button onclick="closeSettings()">關閉</button>
+
+</div>
+
+<script>
+
+let game=document.getElementById("game")
+let fish=document.getElementById("fish")
+let canvas=document.getElementById("line")
+let ctx=canvas.getContext("2d")
+let touch=document.getElementById("touch")
+let predict=document.getElementById("predict")
+
+let startX,startY
+let dragging=false
+
+let wind=0
+let turbulence=0
+
+let mode=1
+let player=1
+let scores=[0,0,0]
+
+let names=["玩家1","玩家2","玩家3"]
+
+let settings={
+music:true,
+offline:false,
+battery:false
+}
+
+function startGame(m){
+
+mode=m
+player=1
+scores=[0,0,0]
+
+names[0]=document.getElementById("p1").value||"玩家1"
+names[1]=document.getElementById("p2").value||"玩家2"
+names[2]=document.getElementById("p3").value||"玩家3"
+
+document.getElementById("menu").style.display="none"
+game.style.display="block"
+
+resize()
+newWind()
+updatePlayerDisplay()
+updateScoreBoard()
+
+}
+
+function resize(){
+
+canvas.width=game.clientWidth
+canvas.height=game.clientHeight
+
+}
+
+window.addEventListener("resize",resize)
+
+function newWind(){
+
+wind=(Math.random()*6-3)
+turbulence=(Math.random()*2-1)
+
+document.getElementById("wind").innerHTML=
+"風力 "+wind.toFixed(1)+" 亂流 "+turbulence.toFixed(1)
+
+}
+
+function updatePlayerDisplay(){
+
+if(mode==1){
+
+document.getElementById("playerDisplay").innerHTML=
+"單人模式"
+
+}else{
+
+document.getElementById("playerDisplay").innerHTML=
+names[player-1]+" 投擲"
+
+}
+
+}
+
+function updateScoreBoard(){
+
+let text=""
+
+for(let i=0;i<mode;i++){
+
+text+=names[i]+" : "+scores[i]+"m "
+
+}
+
+document.getElementById("scoreBoard").innerHTML=text
+
+}
+
+touch.addEventListener("touchstart",e=>{
+
+dragging=true
+
+let r=game.getBoundingClientRect()
+
+startX=e.touches[0].clientX-r.left
+startY=e.touches[0].clientY-r.top
+
+})
+
+touch.addEventListener("touchmove",e=>{
+
+if(!dragging)return
+
+let r=game.getBoundingClientRect()
+
+let x=e.touches[0].clientX-r.left
+let y=e.touches[0].clientY-r.top
+
+fish.style.left=(x-30)+"px"
+fish.style.top=(y-30)+"px"
+
+showPredict(x,y)
+
+})
+
+touch.addEventListener("touchend",e=>{
+
+dragging=false
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+predict.style.display="none"
+
+let r=game.getBoundingClientRect()
+
+let endX=e.changedTouches[0].clientX-r.left
+let endY=e.changedTouches[0].clientY-r.top
+
+let vx=(startX-endX)/5
+let vy=(startY-endY)/5
+
+throwFish(vx,vy)
+
+})
+
+function fishWeight(){
+
+return parseFloat(
+document.getElementById("fishType").value
+)
+
+}
+
+function showPredict(x,y){
+
+let dx=startX-x
+let dy=startY-y
+
+let power=Math.sqrt(dx*dx+dy*dy)
+
+let dist=power*2+wind*15+(Math.random()*20-10)
+
+dist=Math.max(0,Math.min(200,dist))
+
+predict.innerHTML=Math.floor(dist)+"m"
+
+predict.style.left=(dist/200*game.clientWidth)+"px"
+predict.style.display="block"
+
+drawLine(dx,dy)
+
+}
+
+function drawLine(dx,dy){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+let vx=dx/5
+let vy=dy/5
+
+let x=0
+let y=game.clientHeight*0.5
+
+ctx.beginPath()
+ctx.moveTo(x,y)
+
+for(let i=0;i<200;i++){
+
+vx+=wind*0.02
+
+x+=vx
+y+=vy
+
+vy+=0.6
+
+if(y>game.clientHeight*0.8)break
+
+ctx.lineTo(x,y)
+
+}
+
+ctx.strokeStyle="red"
+ctx.lineWidth=2
+ctx.stroke()
+
+}
+
+function throwFish(vx,vy){
+
+let weight=fishWeight()
+
+let x=0
+let y=game.clientHeight*0.5
+
+let g=0.6*weight
+
+let t=setInterval(()=>{
+
+vx+=wind*0.02
+vx+=turbulence*0.01
+
+x+=vx
+y+=vy
+
+vy+=g
+
+fish.style.left=x+"px"
+fish.style.top=y+"px"
+
+fish.style.transform="rotate("+x*0.3+"deg)"
+
+if(y>game.clientHeight*0.8){
+
+clearInterval(t)
+
+finishThrow(x)
+
+}
+
+},settings.battery?30:16)
+
+}
+
+function finishThrow(x){
+
+let dist=Math.floor(x/game.clientWidth*200)
+
+dist=Math.max(0,Math.min(200,dist))
+
+scores[player-1]=dist
+
+updateScoreBoard()
+
+player++
+
+if(player>mode){
+
+let max=Math.max(...scores)
+let winIndex=scores.indexOf(max)
+
+document.getElementById("resultText").innerHTML=
+"最遠距離 "+max+"m"
+
+let w=document.getElementById("winner")
+
+w.style.display="block"
+w.innerHTML=names[winIndex]+" 勝利"
+
+saveScore(max)
+
+document.getElementById("resultPanel").style.display="block"
+
+}else{
+
+updatePlayerDisplay()
+newWind()
+
+}
+
+}
+
+function restartGame(){
+
+player=1
+scores=[0,0,0]
+
+document.getElementById("resultPanel").style.display="none"
+
+fish.style.left="0px"
+fish.style.bottom="12%"
+fish.style.top=""
+
+updatePlayerDisplay()
+updateScoreBoard()
+
+newWind()
+
+}
+
+function saveScore(score){
+
+let list=JSON.parse(localStorage.getItem("fishScores")||"[]")
+
+list.push(score)
+
+list=list.sort((a,b)=>b-a).slice(0,5)
+
+localStorage.setItem("fishScores",JSON.stringify(list))
+
+}
+
+function showScores(){
+
+let list=JSON.parse(localStorage.getItem("fishScores")||"[]")
+
+alert("排行榜\n"+list.join("\n"))
+
+}
+
+function openSettings(){
+
+document.getElementById("settings").style.display="block"
+
+}
+
+function closeSettings(){
+
+document.getElementById("settings").style.display="none"
+
+}
+
+document.getElementById("musicToggle").onchange=function(){
+settings.music=this.checked
+}
+
+document.getElementById("offlineToggle").onchange=function(){
+settings.offline=this.checked
+}
+
+document.getElementById("batteryToggle").onchange=function(){
+settings.battery=this.checked
+}
+
+</script>
+
+</body>
+</html>
